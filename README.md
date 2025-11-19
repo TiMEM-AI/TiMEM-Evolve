@@ -1,12 +1,54 @@
 # TiMEM Evolution: Autonomous Learning for AI Agents
 
-**One Framework for Agents to Learn, Adapt, and Evolve. The Experience Learning System for Self-Improving AI, making continuous evolution natural and measurable.**
+<div align="center">
+  <a href="https://discord.gg/timem">
+    <img alt="TiMEM Evolution header banner" src="./assets/timem-evolution-header.png">
+  </a>
+  <p>
+    <h3>Store Experiences ➡️ Observe Patterns ➡️ Evolve Skills & Rules</h3>
+  </p>
+  <p align="center">
+    <a href="https://pypi.org/project/timem/"><img src="https://img.shields.io/pypi/v/timem.svg"></a>
+    <a href="https://www.npmjs.com/package/timem"><img src="https://img.shields.io/npm/v/timem.svg?logo=npm&logoColor=fff&style=flat&labelColor=2C2C2C&color=28CF8D"></a>
+    <a href="https://github.com/timem-io/evolution/actions/workflows/core-test.yaml"><img src="https://github.com/timem-io/evolution/actions/workflows/core-test.yaml/badge.svg"></a>
+    <a href="https://github.com/timem-io/evolution/actions/workflows/api-test.yaml"><img src="https://github.com/timem-io/evolution/actions/workflows/api-test.yaml/badge.svg"></a>
+  </p>
+  <p align="center">
+    <a href="https://x.com/timem_ai"><img src="https://img.shields.io/twitter/follow/timem_ai?style=social" alt="Twitter Follow"></a>
+    <a href="https://discord.gg/timem"><img src="https://dcbadge.limes.pink/api/server/timem?style=flat" alt="Discord"></a>
+    <a href="https://github.com/timem-io/evolution"><img src="https://img.shields.io/github/stars/timem-io/evolution?style=social" alt="GitHub stars"></a>
+  </p>
 
-Deutsch | Español | Français | 日本語 | 한국어 | Português | Русês | 中文
+  <div align="center">
+    <a href="README_de.md">Deutsch</a> | 
+    <a href="README_es.md">Español</a> | 
+    <a href="README_fr.md">Français</a> | 
+    <a href="README_ja.md">日本語</a> | 
+    <a href="README_ko.md">한국어</a> | 
+    <a href="README_pt.md">Português</a> | 
+    <a href="README_ru.md">Русский</a> | 
+    <a href="README_zh.md">中文</a>
+  </div>
+  <br/>
+</div>
 
-## TiMEM Evolution: Where Agents Learn Through Experience
+## One Framework for Agents to Learn, Adapt, and Evolve
 
 TiMEM Evolution is the autonomous learning framework within the TiMEM platform that enables AI agents to continuously improve by learning from every interaction. Agents evolve through temporal experience, getting smarter with each success and learning from every failure.
+
+**TiMEM Evolution enables agents to:**
+
+- **Learn Skills** from successful interactions
+- **Learn Rules** from failures and feedback  
+- **Autonomously Evolve** through continuous experience
+- **Apply Learned Expertise** in real-time
+
+<div align="center">
+  <picture>
+    <img alt="TiMEM Evolution Learning Flow" src="./docs/images/timem-evolution-flow.png" width="100%">
+  </picture>
+  <p>How TiMEM Evolution Learns and Evolves Your Agents</p>
+</div>
 
 ## Why TiMEM Evolution?
 
@@ -17,29 +59,33 @@ We built TiMEM Evolution because experience-driven learning transforms AI agents
 - **Accelerate agent maturity** through proven skill evolution
 - **Create measurable learning curves** with clear evolutionary metrics
 
-## Core Concepts: The Learning Framework
+## Core Concepts
 
 ### Skills - Evolved Success Patterns
-**Skills** are reusable success patterns distilled from repeated successful interactions:
+**Skills** are reusable success patterns distilled from repeated successful interactions. Each skill evolves through generations:
 
 ```python
-# Skills evolve through application
-"Customer Service Skill":
-- Success Rate: 92% (from 78% initial)
+"Customer Service Skill v3.2":
+- Success Rate: 92% (from 65% initial)
+- Generations: 3 major improvements
 - Applications: 47 successful uses
-- Evolution: 3 major improvements over time
 ```
 
 ### Rules - Learned Guardrails  
 **Rules** are behavioral constraints distilled from failures and negative feedback:
 
 ```python
-# Rules prevent repeated mistakes
-"Communication Rule":
-- Effectiveness: 94% problem prevention
+"Technical Communication Rule v2.1":
+- Effectiveness: 94% problem prevention  
 - Applications: 42 successful constraints
 - Confidence: High (consistently validated)
 ```
+
+### Evolutionary Timeline
+Every skill and rule maintains a complete timeline showing how it adapts over time through natural selection of the most effective behaviors.
+
+### Learning Confidence
+Skills and rules carry confidence scores that evolve based on successful applications and positive outcomes.
 
 ## Quick Start
 
@@ -222,10 +268,32 @@ Companies using TiMEM Evolution report:
 
 TiMEM Evolution includes comprehensive monitoring within the TiMEM platform:
 
-- **Learning Analytics**: Track skill and rule effectiveness
-- **Evolution Timeline**: Visualize capability development
-- **Performance Metrics**: Correlate learning with outcomes
-- **Confidence Tracking**: Monitor learning reliability
+<div align="center">
+  <picture>
+    <img alt="Evolution Dashboard" src="./docs/images/evolution-dashboard.png" width="80%">
+  </picture>
+  <p>Monitor Skill Evolution and Learning Impact</p>
+</div>
+
+## How They Work Together
+
+```mermaid
+graph LR
+    A[Agent Interaction] --> B{Outcome Analysis}
+    B -->|Success| C[Skill Evolution]
+    B -->|Failure| D[Rule Learning]
+    C --> E[Skill Store]
+    D --> F[Rule Store]
+    E --> G[Temporal Recall]
+    F --> G
+    G --> H[Enhanced Context]
+    H --> A
+    
+    style C fill:#e1f5fe
+    style D fill:#f3e5f5
+    style E fill:#bbdefb
+    style F fill:#e1bee7
+```
 
 ## Join the Evolution
 
@@ -235,10 +303,10 @@ pip install timem-ai
 ```
 
 ### Community
-- 💬 **Join our Discord** for discussions and support
-- 🐦 **Follow us on Twitter** for latest developments  
-- 📚 **Documentation** at [docs.timem.ai](https://docs.timem.ai)
-- 🌐 **TiMEM Platform** at [timem.ai](https://timem.ai)
+- 💬 [Join our Discord](https://discord.gg/timem) for discussions and support
+- 🐦 [Follow us on Twitter](https://x.com/timem_ai) for latest developments  
+- 📚 [Documentation](https://docs.timem.ai) at docs.timem.ai
+- 🌐 [TiMEM Platform](https://timem.ai) at timem.ai
 
 ## License
 
