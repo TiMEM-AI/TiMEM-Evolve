@@ -4,13 +4,14 @@ from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 import json
 
-from ..core import MemoryStorage, Learner
+from ..dao.memory_dao import MemoryDAO
+from ..services.learner_service import LearnerService
 from ..models import Session, Message, Feedback, FeedbackCreate
 
 # 假设 MemoryStorage 和 Learner 已经被初始化
 # 在实际应用中，可以通过依赖注入或全局变量获取
-storage = MemoryStorage(data_dir="./data")
-learner = Learner(storage)
+dao = MemoryDAO(data_dir="./data")
+learner_service = LearnerService(dao)
 
 router = APIRouter()
 
@@ -72,11 +73,11 @@ async def feedback_turn(args: FeedbackToolArguments) -> Dict[str, Any]:
             comment=feedback_create.comment
         )
         
-        storage.save_feedback(feedback)
-        learned_id = await learner.learn_from_feedback(feedback)
+        dao.save_feedback(feedback)
+        learned_id = await learner_service.learn_from_feedback(feedback)
         
         # 重新获取更新后的反馈
-        feedback = storage.get_feedback(feedback.feedback_id)
+        feedback = dao.get_feedback(feedback.feedback_id)
         
         result = {
             "feedback_id": feedback.feedback_id,
@@ -104,9 +105,9 @@ async def search_knowledge(args: SearchToolArguments) -> List[Dict[str, Any]]:
     """
     try:
         if args.knowledge_type == "skill":
-            results = storage.search_skills(args.query, args.top_k)
+            results = dao.search_skills(args.query, args.top_k)
         elif args.knowledge_type == "rule":
-            results = storage.search_rules(args.query, args.top_k)
+            results = dao.search_rules(args.query, args.top_k)
         else:
             raise ValueError("Invalid knowledge_type. Must be 'skill' or 'rule'.")
         

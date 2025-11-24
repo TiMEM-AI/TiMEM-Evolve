@@ -8,8 +8,8 @@ from langgraph.graph import StateGraph, END
 from pydantic import BaseModel
 
 from ..models import CoachTask, CoachTaskCreate, CoachState, Session, Message
-from .storage import MemoryStorage
-from .learner import Learner
+from ..dao.memory_dao import MemoryDAO
+from .learner_service import LearnerService
 
 
 class CoachStorage:
@@ -47,13 +47,13 @@ class CoachStorage:
         return [CoachTask(**t) for t in tasks]
 
 
-class CoachAgent:
+class CoachService:
     """Coach Agent - 负责生成任务、观察和评估"""
     
-    def __init__(self, storage: MemoryStorage, learner: Learner, model_name: str = "gpt-4.1-mini"):
-        self.storage = storage
-        self.coach_storage = CoachStorage(data_dir=storage.data_dir)
-        self.learner = learner
+    def __init__(self, dao: MemoryDAO, learner_service: LearnerService, model_name: str = "gpt-4.1-mini"):
+        self.dao = dao
+        self.coach_storage = CoachStorage(data_dir=dao.data_dir)
+        self.learner_service = learner_service
         self.llm = ChatOpenAI(model=model_name, temperature=0.5)
         self.learner_llm = ChatOpenAI(model=model_name, temperature=0.7) # 模拟 Learner Agent
         
@@ -187,7 +187,7 @@ Learner Agent 的最终回复:
             messages=messages,
             outcome=outcome
         )
-        await self.storage.save_session(session)
+        await self.dao.save_session(session)
         
         state.session = session
         return state
@@ -219,12 +219,12 @@ Learner Agent 的对话:
         task = state.task
         
         if session.outcome == "success":
-            skill = await self.learner.extract_skill_from_session(session)
+            skill = await self.learner_service.extract_skill_from_session(session)
             if skill:
                 task.learned_skill_id = skill.skill_id
                 task.learned_rule_id = None
         elif session.outcome == "failure":
-            rule = await self.learner.extract_rule_from_session(session)
+            rule = await self.learner_service.extract_rule_from_session(session)
             if rule:
                 task.learned_rule_id = rule.rule_id
                 task.learned_skill_id = None

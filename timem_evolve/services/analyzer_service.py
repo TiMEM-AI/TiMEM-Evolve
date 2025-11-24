@@ -18,7 +18,7 @@ class AnalysisState(TypedDict):
     error: str
 
 
-class AnalyzerGraph:
+class AnalyzerService:
     """基于 LangGraph 的会话分析器"""
     
     def __init__(self, model_name: str = "gpt-4.1-mini"):

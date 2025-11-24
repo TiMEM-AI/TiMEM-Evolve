@@ -4,7 +4,11 @@ from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
-from ..core import MemoryStorage, SessionManager, Learner, CoachAgent
+from ..dao.memory_dao import MemoryDAO
+from ..services.session_service import SessionService
+from ..services.learner_service import LearnerService
+from ..services.coach_service import CoachService
+from ..services.analyzer_service import AnalyzerService
 from ..models import (
     Session, SessionCreate, 
     Skill, Rule, 
@@ -14,221 +18,128 @@ from ..models import (
 
 
 # 全局实例
-storage = MemoryStorage(data_dir="./data")
-session_manager = SessionManager(storage)
-learner = Learner(storage)
-coach_agent = CoachAgent(storage, learner)
+dao = MemoryDAO(data_dir="./data")
+session_service = SessionService(dao)
+learner_service = LearnerService(dao)
+coach_service = CoachService(dao, learner_service)
+analyzer_service = AnalyzerService()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """应用生命周期管理"""
-    # 启动时初始化数据库
-    await storage.init_db()
+    # 初始化数据库
+    await dao.init_db()
     yield
-    # 关闭时清理资源（如果需要）
 
 
 app = FastAPI(
     title="TiMEM-Evolve API",
-    description="Build Agents that EVOLVE Over Time - 时序记忆与经验学习",
     version="0.1.0",
+    description="自进化智能体框架的后端服务",
     lifespan=lifespan
 )
 
 
 @app.get("/")
 async def root():
-    """根路径重定向到文档"""
     return RedirectResponse(url="/docs")
-
-
-# 导入并注册 MCP 路由
-from .mcp_server import router as mcp_router
-app.include_router(mcp_router)
 
 
 # ==================== Sessions ====================
 
 @app.post("/sessions", response_model=Session)
-async def create_session(session_create: SessionCreate):
+async def add_session(session_create: SessionCreate):
     """添加新会话"""
-    try:
-        session = await session_manager.add_session(session_create)
-        return session
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return await session_service.add_session(session_create)
 
 
-@app.get("/sessions/{session_id}", response_model=Session)
+@app.get("/sessions/{session_id}", response_model=Optional[Session])
 async def get_session(session_id: str):
-    """获取会话详情"""
-    session = await session_manager.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="Session not found")
-    return session
+    """获取会话"""
+    return await session_service.get_session(session_id)
 
 
 @app.get("/sessions", response_model=List[Session])
-async def list_sessions(
-    outcome: Optional[str] = None,
-    limit: int = 100
-):
+async def list_sessions(outcome: Optional[str] = None, limit: int = 100):
     """列出会话"""
-    try:
-        sessions = await session_manager.list_sessions(outcome=outcome, limit=limit)
-        return sessions
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return await session_service.list_sessions(outcome=outcome, limit=limit)
 
 
 # ==================== Feedbacks ====================
 
 @app.post("/feedbacks", response_model=Feedback)
-async def create_feedback(feedback_create: FeedbackCreate):
-    """添加反馈并自动学习"""
-    try:
-        # 创建反馈
-        feedback = Feedback(
-            session_id=feedback_create.session_id,
-            message_index=feedback_create.message_index,
-            rating=feedback_create.rating,
-            comment=feedback_create.comment
-        )
-        
-        # 保存反馈
-        storage.save_feedback(feedback)
-        
-        # 自动学习
-        learned_id = await learner.learn_from_feedback(feedback)
-        
-        # 重新获取更新后的反馈
-        feedback = storage.get_feedback(feedback.feedback_id)
-        
-        return feedback
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/feedbacks/{feedback_id}", response_model=Feedback)
-async def get_feedback(feedback_id: str):
-    """获取反馈详情"""
-    feedback = storage.get_feedback(feedback_id)
-    if not feedback:
-        raise HTTPException(status_code=404, detail="Feedback not found")
+async def add_feedback(feedback_create: FeedbackCreate):
+    """添加反馈并触发学习"""
+    feedback = Feedback(**feedback_create.model_dump())
+    
+    # 1. 保存反馈
+    dao.save_feedback(feedback)
+    
+    # 2. 触发学习
+    learned_id = await learner_service.learn_from_feedback(feedback)
+    
+    # 3. 重新获取反馈（可能已更新 learned 状态）
+    if learned_id:
+        feedback = dao.get_feedback(feedback.feedback_id)
+    
     return feedback
 
 
 @app.get("/feedbacks", response_model=List[Feedback])
 async def list_feedbacks(
-    session_id: Optional[str] = None,
-    learned: Optional[bool] = None,
+    session_id: Optional[str] = None, 
+    learned: Optional[bool] = None, 
     limit: int = 100
 ):
     """列出反馈"""
-    try:
-        feedbacks = storage.list_feedbacks(
-            session_id=session_id,
-            learned=learned,
-            limit=limit
-        )
-        return feedbacks
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return dao.list_feedbacks(session_id=session_id, learned=learned, limit=limit)
 
 
 # ==================== Skills ====================
 
-@app.get("/skills/{skill_id}", response_model=Skill)
-async def get_skill(skill_id: str):
-    """获取技能详情"""
-    skill = storage.get_skill(skill_id)
-    if not skill:
-        raise HTTPException(status_code=404, detail="Skill not found")
-    return skill
-
-
 @app.get("/skills", response_model=List[Skill])
 async def list_skills(limit: int = 100):
-    """列出所有技能"""
-    try:
-        skills = storage.list_skills(limit=limit)
-        return skills
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """列出技能"""
+    return dao.list_skills(limit=limit)
 
 
-@app.get("/skills/search/{query}", response_model=List[Skill])
+@app.get("/skills/search", response_model=List[Skill])
 async def search_skills(query: str, top_k: int = 5):
     """搜索技能"""
-    try:
-        skills = storage.search_skills(query=query, top_k=top_k)
-        return skills
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return dao.search_skills(query=query, top_k=top_k)
 
 
 # ==================== Rules ====================
 
-@app.get("/rules/{rule_id}", response_model=Rule)
-async def get_rule(rule_id: str):
-    """获取规则详情"""
-    rule = storage.get_rule(rule_id)
-    if not rule:
-        raise HTTPException(status_code=404, detail="Rule not found")
-    return rule
-
-
 @app.get("/rules", response_model=List[Rule])
 async def list_rules(limit: int = 100):
-    """列出所有规则"""
-    try:
-        rules = storage.list_rules(limit=limit)
-        return rules
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """列出规则"""
+    return dao.list_rules(limit=limit)
 
 
-@app.get("/rules/search/{query}", response_model=List[Rule])
+@app.get("/rules/search", response_model=List[Rule])
 async def search_rules(query: str, top_k: int = 5):
     """搜索规则"""
-    try:
-        rules = storage.search_rules(query=query, top_k=top_k)
-        return rules
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return dao.search_rules(query=query, top_k=top_k)
 
 
 # ==================== Learning ====================
 
-@app.post("/learn/session/{session_id}")
+@app.post("/learn/session/{session_id}", response_model=Optional[str])
 async def learn_from_session(session_id: str):
-    """从完整会话中学习"""
-    try:
-        session = await storage.get_session(session_id)
-        if not session:
-            raise HTTPException(status_code=404, detail="Session not found")
-        
-        result = {}
-        
-        if session.outcome == "success":
-            skill = await learner.extract_skill_from_session(session)
-            if skill:
-                result["skill_id"] = skill.skill_id
-                result["type"] = "skill"
-        elif session.outcome == "failure":
-            rule = await learner.extract_rule_from_session(session)
-            if rule:
-                result["rule_id"] = rule.rule_id
-                result["type"] = "rule"
-        else:
-            raise HTTPException(status_code=400, detail="Session outcome must be 'success' or 'failure'")
-        
-        return result
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    """从完整的会话中学习（成功->技能，失败->规则）"""
+    session = await session_service.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session.outcome == "success":
+        skill = await learner_service.extract_skill_from_session(session)
+        return skill.skill_id if skill else None
+    elif session.outcome == "failure":
+        rule = await learner_service.extract_rule_from_session(session)
+        return rule.rule_id if rule else None
+    
+    return None
 
 
 # ==================== Coach ====================
@@ -236,14 +147,14 @@ async def learn_from_session(session_id: str):
 @app.get("/coach/state", response_model=CoachState)
 async def get_coach_state():
     """获取 Coach 模块的统计状态"""
-    return coach_agent.get_state()
+    return coach_service.get_state()
 
 
 @app.post("/coach/generate_task", response_model=CoachTask)
 async def generate_coach_task(task_create: CoachTaskCreate):
     """生成一个新的 Coach 任务"""
     try:
-        task = await coach_agent.generate_task(task_create.business_goal)
+        task = await coach_service.generate_task(task_create.business_goal)
         return task
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -253,7 +164,7 @@ async def generate_coach_task(task_create: CoachTaskCreate):
 async def run_coach_task(task_id: str):
     """运行一个 Coach 任务"""
     try:
-        tasks = coach_agent.list_tasks()
+        tasks = coach_service.list_tasks()
         task = next((t for t in tasks if t.task_id == task_id), None)
         
         if not task:
@@ -265,7 +176,7 @@ async def run_coach_task(task_id: str):
         # 异步运行任务
         # 注意：这里直接调用 run_task 会阻塞主线程，实际部署中应使用后台任务
         # 简化处理：直接调用
-        updated_task = await coach_agent.run_task(task)
+        updated_task = await coach_service.run_task(task)
         return updated_task
         
     except HTTPException:
@@ -277,7 +188,7 @@ async def run_coach_task(task_id: str):
 @app.get("/coach/tasks", response_model=List[CoachTask])
 async def list_coach_tasks(status: Optional[str] = None):
     """列出 Coach 任务"""
-    return coach_agent.list_tasks(status=status)
+    return coach_service.list_tasks(status=status)
 
 
 if __name__ == "__main__":

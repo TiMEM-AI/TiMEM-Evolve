@@ -5,14 +5,14 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage
 
 from ..models import Session, Skill, Rule, Feedback, Workflow, Message
-from .storage import MemoryStorage
+from ..dao.memory_dao import MemoryDAO
 
 
-class Learner:
+class LearnerService:
     """经验学习器"""
     
-    def __init__(self, storage: MemoryStorage, model_name: str = "gpt-4.1-mini"):
-        self.storage = storage
+    def __init__(self, dao: MemoryDAO, model_name: str = "gpt-4.1-mini"):
+        self.dao = dao
         self.llm = ChatOpenAI(model=model_name, temperature=0.7)
     
     async def learn_from_feedback(self, feedback: Feedback) -> Optional[str]:
@@ -22,7 +22,7 @@ class Learner:
             学到的 skill_id 或 rule_id
         """
         # 获取会话
-        session = await self.storage.get_session(feedback.session_id)
+        session = await self.dao.get_session(feedback.session_id)
         if not session:
             return None
         
@@ -44,12 +44,12 @@ class Learner:
             if skill:
                 skill.source_sessions = [session.session_id]
                 skill.metadata["feedback_id"] = feedback.feedback_id
-                self.storage.save_skill(skill)
+                self.dao.save_skill(skill)
                 
                 # 更新反馈状态
                 feedback.learned = True
                 feedback.learned_skill_id = skill.skill_id
-                self.storage.save_feedback(feedback)
+                self.dao.save_feedback(feedback)
                 
                 return skill.skill_id
         else:
@@ -62,12 +62,12 @@ class Learner:
             if rule:
                 rule.source_sessions = [session.session_id]
                 rule.metadata["feedback_id"] = feedback.feedback_id
-                self.storage.save_rule(rule)
+                self.dao.save_rule(rule)
                 
                 # 更新反馈状态
                 feedback.learned = True
                 feedback.learned_rule_id = rule.rule_id
-                self.storage.save_feedback(feedback)
+                self.dao.save_feedback(feedback)
                 
                 return rule.rule_id
         
@@ -270,7 +270,7 @@ AI: {dialog_turn['ai_response']}
                 source_sessions=[session.session_id]
             )
             
-            self.storage.save_skill(skill)
+            self.dao.save_skill(skill)
             return skill
             
         except Exception as e:
@@ -323,7 +323,7 @@ AI: {dialog_turn['ai_response']}
                 source_sessions=[session.session_id]
             )
             
-            self.storage.save_rule(rule)
+            self.dao.save_rule(rule)
             return rule
             
         except Exception as e:

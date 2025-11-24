@@ -8,7 +8,7 @@ from datetime import datetime
 from ..models import Session, Skill, Rule, Feedback
 
 
-class MemoryStorage:
+class MemoryDAO:
     """记忆存储管理器"""
     
     def __init__(self, data_dir: str = "./data"):
