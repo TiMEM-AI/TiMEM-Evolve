@@ -4,11 +4,12 @@ from fastapi.responses import RedirectResponse
 from contextlib import asynccontextmanager
 from typing import List, Optional
 
-from ..core import MemoryStorage, SessionManager, Learner
+from ..core import MemoryStorage, SessionManager, Learner, CoachAgent
 from ..models import (
     Session, SessionCreate, 
     Skill, Rule, 
-    Feedback, FeedbackCreate
+    Feedback, FeedbackCreate,
+    CoachTask, CoachState, CoachTaskCreate
 )
 
 
@@ -16,6 +17,7 @@ from ..models import (
 storage = MemoryStorage(data_dir="./data")
 session_manager = SessionManager(storage)
 learner = Learner(storage)
+coach_agent = CoachAgent(storage, learner)
 
 
 @asynccontextmanager
@@ -227,6 +229,55 @@ async def learn_from_session(session_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ==================== Coach ====================
+
+@app.get("/coach/state", response_model=CoachState)
+async def get_coach_state():
+    """获取 Coach 模块的统计状态"""
+    return coach_agent.get_state()
+
+
+@app.post("/coach/generate_task", response_model=CoachTask)
+async def generate_coach_task(task_create: CoachTaskCreate):
+    """生成一个新的 Coach 任务"""
+    try:
+        task = await coach_agent.generate_task(task_create.business_goal)
+        return task
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/coach/run_task/{task_id}", response_model=CoachTask)
+async def run_coach_task(task_id: str):
+    """运行一个 Coach 任务"""
+    try:
+        tasks = coach_agent.list_tasks()
+        task = next((t for t in tasks if t.task_id == task_id), None)
+        
+        if not task:
+            raise HTTPException(status_code=404, detail="Coach Task not found")
+            
+        if task.status != "pending":
+            raise HTTPException(status_code=400, detail=f"Task status is {task.status}, only 'pending' tasks can be run.")
+            
+        # 异步运行任务
+        # 注意：这里直接调用 run_task 会阻塞主线程，实际部署中应使用后台任务
+        # 简化处理：直接调用
+        updated_task = await coach_agent.run_task(task)
+        return updated_task
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/coach/tasks", response_model=List[CoachTask])
+async def list_coach_tasks(status: Optional[str] = None):
+    """列出 Coach 任务"""
+    return coach_agent.list_tasks(status=status)
 
 
 if __name__ == "__main__":

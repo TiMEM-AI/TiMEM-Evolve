@@ -3,6 +3,7 @@ from .session import Session, SessionCreate, Message
 from .skill import Skill, Workflow
 from .rule import Rule
 from .feedback import Feedback, FeedbackCreate
+from .coach import CoachTask, CoachTaskCreate, CoachState
 
 __all__ = [
     "Session",
@@ -13,4 +14,7 @@ __all__ = [
     "Rule",
     "Feedback",
     "FeedbackCreate",
+    "CoachTask",
+    "CoachTaskCreate",
+    "CoachState",
 ]
